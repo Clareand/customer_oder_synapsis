@@ -1,0 +1,13 @@
+1. Buka CMD
+2. Ketikkan 
+    a. sudo gedit ~/.bashrc
+    atau
+    b. sudo -H gedit /etc/environment
+3. Jika sudah edit dan tambahkan variabel. Contoh:
+    ...
+    GO_ENV="local"
+    GO_ENV_DEV="development"
+    dll
+    ...
+4. Simpan
+5. lebih baik setelah setting di restrart terlebih dahulu
