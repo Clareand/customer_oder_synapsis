@@ -74,16 +74,14 @@ type ResponseDeleteSessionRefreshToken struct {
 type User struct {
 	UserID string `json:"user_id"`
 	// PsgID          string `json:"psg_id"`
-	UserName       string `json:"user_name"`
-	UserEmail      string `json:"user_email"`
-	UserActivation string `json:"user_activation"`
-	CreatedAt      string `json:"created_at"`
-	Session        string `json:"session_id"`
+	UserName  string `json:"user_name"`
+	UserEmail string `json:"user_email"`
+	CreatedAt string `json:"created_at"`
+	Session   string `json:"session_id"`
 }
 
 type ResultLogin struct {
 	User        User        `json:"user"`
-	Provider    string      `json:"provider"`
 	AccessToken AccessToken `json:"access_token"`
 }
 

@@ -134,12 +134,11 @@ func (r *loginRepo) GetDataUser(userID string, rememberMe bool) model.GetterUser
 }
 func (r *loginRepo) CreateToken(getLogin model.GetterUserLogin) (token string) {
 	user := model.User{
-		UserID:         getLogin.UserID,
-		UserName:       getLogin.UserName,
-		UserEmail:      getLogin.UserEmail,
-		UserActivation: getLogin.UserActivation,
-		CreatedAt:      getLogin.CreatedAt,
-		Session:        getLogin.Session,
+		UserID:    getLogin.UserID,
+		UserName:  getLogin.UserName,
+		UserEmail: getLogin.UserEmail,
+		CreatedAt: getLogin.CreatedAt,
+		Session:   getLogin.Session,
 	}
 
 	token, exp := createTokenUserFunc(user, getLogin, r.echoCtx)
@@ -156,12 +155,11 @@ func (r *loginRepo) ResultLogin(param model.GetterUserLogin, token string) model
 	getLogin := param
 
 	user := model.User{
-		UserID:         getLogin.UserID,
-		UserName:       getLogin.UserName,
-		UserEmail:      getLogin.UserEmail,
-		UserActivation: getLogin.UserActivation,
-		CreatedAt:      getLogin.CreatedAt,
-		Session:        getLogin.Session,
+		UserID:    getLogin.UserID,
+		UserName:  getLogin.UserName,
+		UserEmail: getLogin.UserEmail,
+		CreatedAt: getLogin.CreatedAt,
+		Session:   getLogin.Session,
 	}
 	accessToken := model.AccessToken{
 		Type:         "bearer",
@@ -253,12 +251,11 @@ func (r *loginRepo) RefreshToken(req model.AccessToken) <-chan models.Result {
 			getLogin.RefreshToken = req.RefreshToken
 			if getLogin.UserID != "" {
 				user := model.User{
-					UserID:         getLogin.UserID,
-					UserName:       getLogin.UserName,
-					UserEmail:      getLogin.UserEmail,
-					UserActivation: getLogin.UserActivation,
-					CreatedAt:      getLogin.CreatedAt,
-					Session:        getLogin.Session,
+					UserID:    getLogin.UserID,
+					UserName:  getLogin.UserName,
+					UserEmail: getLogin.UserEmail,
+					CreatedAt: getLogin.CreatedAt,
+					Session:   getLogin.Session,
 				}
 				token, exp := createTokenUserFunc(user, getLogin, r.echoCtx)
 
