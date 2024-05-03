@@ -7,8 +7,6 @@ import (
 )
 
 type LoginRepo interface {
-	// check bruteforce defender
-	SecureBF(username string, ipnumber string) bool
 	Logout(req model.AccessToken) <-chan models.Result
 	RefreshToken(req model.AccessToken) <-chan models.Result
 	// check user di DB

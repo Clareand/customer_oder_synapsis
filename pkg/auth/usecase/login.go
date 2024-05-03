@@ -34,13 +34,6 @@ func (u *loginUsecase) NewLoginUser(req model.ReqNewLogin, ipnumber string) <-ch
 		defer span.End()
 		defer close(output)
 
-		if !u.repo.SecureBF(req.Username, ipnumber) {
-			resp := &models.Response{Code: 400, MessageCode: 110, Message: "Your IP has reached the maximum number of failed login attempts and has been temporary locked."}
-			output <- models.Result{Data: resp, Error: &CustomError{message: "Your IP has reached the maximum number of failed login attempts and has been temporary locked."}}
-			return
-
-		}
-
 		// var checkUser bool
 
 		checkUser := u.repo.CheckUser(req.Username)
@@ -51,7 +44,7 @@ func (u *loginUsecase) NewLoginUser(req model.ReqNewLogin, ipnumber string) <-ch
 
 			fmt.Println("user :OK")
 
-			userID := checkUser.UserId
+			userID := checkUser.CustomerID
 			// check password di DB
 			hashPassword := u.repo.GetPassword(userID)
 
@@ -65,17 +58,14 @@ func (u *loginUsecase) NewLoginUser(req model.ReqNewLogin, ipnumber string) <-ch
 				if matchingPassword {
 					fmt.Println("password matching :", matchingPassword)
 					// menampilkan data dari user
-					userData := model.GetterUserLogin{}
-					userData = u.repo.GetDataUser(userID, request.RememberMe)
+					userData := u.repo.GetDataUser(userID, request.RememberMe)
 
-					fmt.Println("userdata : ", userData)
-					if userData.UserID != "" {
+					fmt.Println("userdata 1: ", userData)
+					if userData.CustomerID != "" {
 						var createToken = u.repo.CreateToken(userData)
 						fmt.Println("Creating token : ", createToken)
 						if createToken != "" {
-
-							loginResult := model.ResultLoginUserBE{}
-							loginResult = u.repo.ResultLogin(userData, createToken)
+							loginResult := u.repo.ResultLogin(userData, createToken)
 
 							resp := &models.Response{Code: 200, MessageCode: 0000, Message: "Success", Data: loginResult}
 
@@ -85,12 +75,14 @@ func (u *loginUsecase) NewLoginUser(req model.ReqNewLogin, ipnumber string) <-ch
 						}
 
 					} else {
+						fmt.Println("1")
 						resp := &models.Response{Code: 400, MessageCode: 0000}
 						output <- models.Result{Data: resp, Error: &CustomError{message: "Incorrect username or password"}}
 						return
 					}
 
 				} else {
+					fmt.Println("2")
 					resp := &models.Response{Code: 400, MessageCode: 0000}
 					output <- models.Result{Data: resp, Error: &CustomError{message: "Incorrect username or password"}}
 					return
@@ -104,6 +96,7 @@ func (u *loginUsecase) NewLoginUser(req model.ReqNewLogin, ipnumber string) <-ch
 			}
 
 		} else {
+			fmt.Println("3")
 			resp := &models.Response{Code: 400, MessageCode: 0000}
 			output <- models.Result{Data: resp, Error: &CustomError{message: "Incorrect username or password"}}
 		}

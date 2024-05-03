@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Clareand/customer_oder_synapsis/config/postgresql"
@@ -25,8 +26,8 @@ type loginRepo struct {
 }
 
 type hashLogin struct {
-	Password string `json:"password"`
-	UserID   string `json:"user_id"`
+	Password   string `json:"password"`
+	CustomerID string `json:"customer_id"`
 }
 
 func NewLoginRepo(dbConn *postgresql.DbConnection, redisConn _redis.RedisConnection) LoginRepo {
@@ -48,19 +49,6 @@ const (
 	RedisKeySession = "sessions"
 )
 
-func (r *loginRepo) SecureBF(username string, ipnumber string) bool {
-
-	result := model.IsTrue{}
-
-	q := r.dbConn.Db
-
-	q.Raw(`SELECT * FROM system_configuration.f_check_log_ip_backoffice(?,?);`, username, ipnumber).Scan(&result)
-	if result.IsTrue {
-		q.Exec("SELECT * FROM system_configuration.f_add_log_ip_backoffice(?,?);", ipnumber, username)
-	}
-	return result.IsTrue
-}
-
 func (r *loginRepo) CheckUser(username string) model.CheckUserIsTrue {
 	span, _ := apm.StartSpan(r.ctx, "CheckUser", "repository")
 	defer span.End()
@@ -69,21 +57,21 @@ func (r *loginRepo) CheckUser(username string) model.CheckUserIsTrue {
 
 	q := r.dbConn.Db
 
-	sqlquery := "SELECT * FROM system_configuration.p_check_user(?)"
-	q.Raw(sqlquery, username).Scan(&result)
+	sql := "SELECT * FROM public.f_check_user(?)"
+	q.Raw(sql, username).Scan(&result)
 	return result
 }
 
 func (r *loginRepo) GetPassword(userId string) (password string) {
-	span, _ := apm.StartSpan(r.ctx, "GetPassword", "repository")
+	span, _ := apm.StartSpan(r.ctx, "public.f_get_password_user", "repository")
 	defer span.End()
 
 	result := model.DataUserFromDB{}
 
 	q := r.dbConn.Db
-	q.Raw("SELECT * FROM system_configuration.p_get_password_user(?)", userId).Scan(&result)
+	q.Raw("SELECT * FROM public.f_get_password_user(?)", userId).Scan(&result)
 
-	return result.UserCredential
+	return result.Credential
 }
 
 func (r *loginRepo) GetDataUser(userID string, rememberMe bool) model.GetterUserLogin {
@@ -102,6 +90,7 @@ func (r *loginRepo) GetDataUser(userID string, rememberMe bool) model.GetterUser
 	} else {
 		intervalMonthRemember = fmt.Sprintf(`'%v'`, intervalRemember)
 	}
+	intervalMonthRemember = strings.ReplaceAll(intervalMonthRemember, "'", "")
 
 	defaultInterval := os.Getenv("DEFAULT_REMEMBER")
 	if defaultInterval == "" {
@@ -110,35 +99,40 @@ func (r *loginRepo) GetDataUser(userID string, rememberMe bool) model.GetterUser
 		intervalRememberDay = fmt.Sprintf(`'%v'`, defaultInterval)
 	}
 
+	intervalRememberDay = strings.ReplaceAll(intervalRememberDay, "'", "")
 	fmt.Println("Remember Me : ", rememberMe)
 	fmt.Println("Interval Day Remember : ", intervalRememberDay)
 	fmt.Println("Interval Month Remember : ", intervalMonthRemember)
 
-	qr := "SELECT * FROM system_configuration.p_get_log_data_user(?)"
+	qr := "SELECT * FROM public.f_get_log_data_user(?)"
 	q.Raw(qr, userID).Scan(&result)
 
-	qrCreateRefreshToken := "SELECT * FROM system_configuration.p_create_session_refresh_token_user(?,?,?,?,?)"
+	qrCreateRefreshToken := "SELECT * FROM public.f_create_session_refresh_token_user(?,?,?,?,?)"
 	q.Raw(qrCreateRefreshToken, userID, rememberMe, intervalMonthRemember, intervalRememberDay, nil).Scan(&session)
 
 	/* START CREATE SESSION CACHE REDIS */
 	// recheck
 	var sessionData model.Session
-	q.Raw("select * from system_configuration.sessions s where (encode(public.hmac(s.id::text, s.key, 'sha256'), 'hex')) = ?", session.RefreshToken).Scan(&sessionData)
+	q.Raw("select * from public.sessions s where (encode(public.hmac(s.id::text, s.key, 'sha256'), 'hex')) = ?", session.RefreshToken).Scan(&sessionData)
+
+	fmt.Println(sessionData, "session")
 
 	r.redisConn.CreateCache(r.echoCtx, RedisKeySession, RedisKeySession+"_"+session.RefreshToken, sessionData, MAP_CONFIG_EXPIRY)
 	/* END CREATE SESSION CACHE REDIS */
 
 	result.RefreshToken = session.RefreshToken
 
+	fmt.Println("user on ", result)
+
 	return result
 }
 func (r *loginRepo) CreateToken(getLogin model.GetterUserLogin) (token string) {
 	user := model.User{
-		UserID:    getLogin.UserID,
-		UserName:  getLogin.UserName,
-		UserEmail: getLogin.UserEmail,
-		CreatedAt: getLogin.CreatedAt,
-		Session:   getLogin.Session,
+		CustomerID: getLogin.CustomerID,
+		UserName:   getLogin.UserName,
+		UserEmail:  getLogin.UserEmail,
+		CreatedAt:  getLogin.CreatedAt,
+		Session:    getLogin.Session,
 	}
 
 	token, exp := createTokenUserFunc(user, getLogin, r.echoCtx)
@@ -155,11 +149,11 @@ func (r *loginRepo) ResultLogin(param model.GetterUserLogin, token string) model
 	getLogin := param
 
 	user := model.User{
-		UserID:    getLogin.UserID,
-		UserName:  getLogin.UserName,
-		UserEmail: getLogin.UserEmail,
-		CreatedAt: getLogin.CreatedAt,
-		Session:   getLogin.Session,
+		CustomerID: getLogin.CustomerID,
+		UserName:   getLogin.UserName,
+		UserEmail:  getLogin.UserEmail,
+		CreatedAt:  getLogin.CreatedAt,
+		Session:    getLogin.Session,
 	}
 	accessToken := model.AccessToken{
 		Type:         "bearer",
@@ -204,7 +198,7 @@ func (r *loginRepo) RefreshToken(req model.AccessToken) <-chan models.Result {
 		defer span.End()
 		defer close(output)
 		q := r.dbConn.Db
-		qr := "SELECT * FROM system_configuration.p_check_session_refresh_token(?)"
+		qr := "SELECT * FROM public.f_check_session_refresh_token(?)"
 		q.Raw(qr, req.RefreshToken).Scan(&checkSession)
 
 		if !checkSession.IsNotExpired {
@@ -213,7 +207,7 @@ func (r *loginRepo) RefreshToken(req model.AccessToken) <-chan models.Result {
 			/* END DELETE SESSION CACHE REDIS */
 			resp := &models.Response{Code: 400, MessageCode: 0000, Message: "Session Expired"}
 			output <- models.Result{Data: resp}
-		} else if checkSession.UserId != "" {
+		} else if checkSession.CustomerID != "" {
 
 			var intervalMonthRemember, intervalRememberDay string
 			intervalRemember := os.Getenv("REMEMBER_ME")
@@ -237,25 +231,23 @@ func (r *loginRepo) RefreshToken(req model.AccessToken) <-chan models.Result {
 				paramTimeUpdateSession = intervalRememberDay
 			}
 
-			q.Exec(`SELECT system_configuration.p_update_session(?,?)`, req.RefreshToken, paramTimeUpdateSession)
+			q.Exec(`SELECT public.f_update_session(?,?)`, req.RefreshToken, paramTimeUpdateSession)
 
 			/* START UPDATE SESSION CACHE REDIS */
 			var sessionData model.Session
-			q.Raw("select * from system_configuration.sessions s where (encode(public.hmac(s.id::text, s.key, 'sha256'), 'hex')) = ?", req.RefreshToken).Scan(&sessionData)
+			q.Raw("select * from public.sessions s where (encode(public.hmac(s.id::text, s.key, 'sha256'), 'hex')) = ?", req.RefreshToken).Scan(&sessionData)
 
 			r.redisConn.CreateCache(r.echoCtx, RedisKeySession, RedisKeySession+"_"+req.RefreshToken, sessionData, MAP_CONFIG_EXPIRY)
 			/* END UPDATE SESSION CACHE REDIS */
 
-			qr := "SELECT * FROM system_configuration.p_get_log_data_user(?)"
-			q.Raw(qr, checkSession.UserId).Scan(&getLogin)
 			getLogin.RefreshToken = req.RefreshToken
-			if getLogin.UserID != "" {
+			if getLogin.CustomerID != "" {
 				user := model.User{
-					UserID:    getLogin.UserID,
-					UserName:  getLogin.UserName,
-					UserEmail: getLogin.UserEmail,
-					CreatedAt: getLogin.CreatedAt,
-					Session:   getLogin.Session,
+					CustomerID: getLogin.CustomerID,
+					UserName:   getLogin.UserName,
+					UserEmail:  getLogin.UserEmail,
+					CreatedAt:  getLogin.CreatedAt,
+					Session:    getLogin.Session,
 				}
 				token, exp := createTokenUserFunc(user, getLogin, r.echoCtx)
 

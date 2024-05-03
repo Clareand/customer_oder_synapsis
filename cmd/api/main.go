@@ -8,9 +8,18 @@ import (
 	"net/http"
 	"os"
 
+	jwtConfig "github.com/Clareand/customer_oder_synapsis/config/jwt"
 	authHandler "github.com/Clareand/customer_oder_synapsis/pkg/auth/handler"
 	authRepo "github.com/Clareand/customer_oder_synapsis/pkg/auth/repository"
 	authUsecase "github.com/Clareand/customer_oder_synapsis/pkg/auth/usecase"
+
+	productHandler "github.com/Clareand/customer_oder_synapsis/pkg/product/handler"
+	productRepo "github.com/Clareand/customer_oder_synapsis/pkg/product/repository"
+	productUsecase "github.com/Clareand/customer_oder_synapsis/pkg/product/usecase"
+
+	cartHandler "github.com/Clareand/customer_oder_synapsis/pkg/cart/handler"
+	cartRepo "github.com/Clareand/customer_oder_synapsis/pkg/cart/repository"
+	cartUsecase "github.com/Clareand/customer_oder_synapsis/pkg/cart/usecase"
 
 	configRedis "github.com/Clareand/customer_oder_synapsis/config/redis"
 
@@ -38,6 +47,7 @@ func main() {
 
 	dbConn := postgresql.CreateConnection()
 	redisConn := configRedis.CreateConnection()
+	authMiddleware := middleware.JWTWithConfig(jwtConfig.JWTConfig())
 
 	logrus.AddHook(&apmlogrus.Hook{
 		LogLevels: []logrus.Level{
@@ -71,6 +81,14 @@ func main() {
 	authRepo := authRepo.NewLoginRepo(dbConn, redisConn)
 	authUsecase := authUsecase.NewLoginRepo(authRepo)
 	authHandler.NewHTTPHandler(authUsecase).Mount(apiV1)
+
+	productRepo := productRepo.NewProductRepo(dbConn)
+	productUsecase := productUsecase.NewProductUsecase(productRepo)
+	productHandler.NewHTTPHandler(productUsecase).Mount(apiV1, authMiddleware, dbConn)
+
+	cartRepo := cartRepo.NewCartRepo(dbConn)
+	cartUsecase := cartUsecase.NewCartUsecase(cartRepo)
+	cartHandler.NewHTTPHandler(cartUsecase).Mount(apiV1, authMiddleware, dbConn)
 
 	err := r.Start(":" + os.Getenv("PORT"))
 	if err != nil {

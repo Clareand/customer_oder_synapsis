@@ -1,8 +1,6 @@
 package jwt
 
 import (
-	"crypto/rsa"
-	"fmt"
 	"os"
 
 	"github.com/Clareand/customer_oder_synapsis/config/postgresql"
@@ -35,17 +33,11 @@ type GetCustomer struct {
 }
 
 func JWTConfig() middleware.JWTConfig {
-	var verifyKey *rsa.PublicKey
-	pubKey := []byte(os.Getenv("PUB_KEY"))
-
-	verifyKey, err := jwt.ParseRSAPublicKeyFromPEM(pubKey)
-	if err != nil {
-		fmt.Println("errVerifyKey :", err)
-	}
+	pubKey := []byte(os.Getenv("SECRET_KEY"))
 
 	config := middleware.JWTConfig{
-		SigningKey:    verifyKey,
-		SigningMethod: "RS256",
+		SigningKey:    pubKey,
+		SigningMethod: jwt.SigningMethodHS256.Name,
 		Claims:        &JwtCustomer{},
 	}
 	return config

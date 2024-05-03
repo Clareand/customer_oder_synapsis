@@ -3,7 +3,7 @@ package model
 import "encoding/json"
 
 type Auth struct {
-	UserID string `json:"user_id"`
+	CustomerID string `json:"customer_id"`
 }
 
 type ReqLogin struct {
@@ -29,20 +29,20 @@ type IsTrue struct {
 }
 
 type CheckUserIsTrue struct {
-	IsTrue bool   `json:"is_true" gorm:"column:is_true"`
-	UserId string `json:"user_id" gorm:"column:user_id2"`
+	IsTrue     bool   `json:"is_true" gorm:"column:is_true"`
+	CustomerID string `json:"customer_id" gorm:"column:customer_id"`
 }
 
 type DataUserFromDB struct {
-	UserCredential string `json:"user_credential" gorm:"column:user_credential"`
-	Password       string `json:"password" gorm:"column:password"`
-	UserID         int    `json:"user_id" gorm:"column:user_id"`
+	Credential string `json:"credential" gorm:"column:credential"`
+	Password   string `json:"password" gorm:"column:password"`
+	CustomerID int    `json:"customer_id" gorm:"column:customer_id"`
 }
 
 type Register struct {
 	UserName     string `json:"username"`
 	Email        string `json:"email"`
-	UserID       int    `json:"user_id"`
+	CustomerID   int    `json:"customer_id"`
 	MerchantID   int    `json:"merchant_id"`
 	MerchantCode string `json:"merchant_code"`
 	Roles        string `json:"roles"`
@@ -64,7 +64,7 @@ type AccessToken struct {
 }
 type CheckSession struct {
 	IsNotExpired bool   `json:"is_not_expired"`
-	UserId       string `json:"user_id"`
+	CustomerID   string `json:"customer_id"`
 	RememberMe   bool   `json:"remember_me"`
 }
 type ResponseDeleteSessionRefreshToken struct {
@@ -72,7 +72,7 @@ type ResponseDeleteSessionRefreshToken struct {
 }
 
 type User struct {
-	UserID string `json:"user_id"`
+	CustomerID string `json:"customer_id"`
 	// PsgID          string `json:"psg_id"`
 	UserName  string `json:"user_name"`
 	UserEmail string `json:"user_email"`
@@ -87,18 +87,16 @@ type ResultLogin struct {
 
 // internal users
 type GetterUserLogin struct {
-	UserID         string `json:"user_id" gorm:"column:user_id2"`
-	UserName       string `json:"user_name" gorm:"column:user_name"`
-	UserEmail      string `json:"user_email" gorm:"column:user_email"`
-	UserActivation string `json:"user_activation" gorm:"column:user_activation"`
-	CreatedAt      string `json:"created_at" gorm:"column:created_at"`
-	RefreshToken   string `json:"refresh_token" gorm:"column:refresh_token"`
-	Session        string `json:"session_id" gorm:"column:session_id"`
+	CustomerID   string `json:"customer_id" gorm:"column:customer_id"`
+	UserName     string `json:"username" gorm:"column:username"`
+	UserEmail    string `json:"user_email" gorm:"column:user_email"`
+	CreatedAt    string `json:"created_at" gorm:"column:created_at"`
+	RefreshToken string `json:"refresh_token" gorm:"column:refresh_token"`
+	Session      string `json:"session_id" gorm:"column:session_id"`
 }
 
 type ResultLoginUserBE struct {
 	User        User        `json:"user"`
-	Provider    string      `json:"provider"`
 	AccessToken AccessToken `json:"access_token"`
 }
 
@@ -107,12 +105,10 @@ type UserBeStatus struct {
 }
 type Session struct {
 	ID             string          `json:"id"`
-	UserId         string          `json:"user_id"`
+	CustomerID     string          `json:"customer_id"`
 	Key            string          `json:"key"`
 	CreatedAt      string          `json:"created_at"`
 	ExpiredAt      string          `json:"expired_at"`
-	PartnerID      string          `json:"partner_id"`
 	SessAdditional json.RawMessage `json:"sess_additional"`
 	RememberMe     *bool           `json:"remember_me"`
-	GroupApi       json.RawMessage `json:"group_api"`
 }
