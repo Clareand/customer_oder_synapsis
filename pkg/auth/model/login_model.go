@@ -89,10 +89,10 @@ type ResultLogin struct {
 type GetterUserLogin struct {
 	CustomerID   string `json:"customer_id" gorm:"column:customer_id"`
 	UserName     string `json:"username" gorm:"column:username"`
-	UserEmail    string `json:"user_email" gorm:"column:user_email"`
+	UserEmail    string `json:"customer_email" gorm:"column:custome_email"`
 	CreatedAt    string `json:"created_at" gorm:"column:created_at"`
 	RefreshToken string `json:"refresh_token" gorm:"column:refresh_token"`
-	Session      string `json:"session_id" gorm:"column:session_id"`
+	Session      string `json:"session" gorm:"column:session"`
 }
 
 type ResultLoginUserBE struct {
